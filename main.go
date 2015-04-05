@@ -6,9 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/codegangsta/negroni"
 	"github.com/craigfurman/bovine/indexer"
 	"github.com/craigfurman/bovine/web"
+
+	"github.com/codegangsta/negroni"
 )
 
 func main() {
