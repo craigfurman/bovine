@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"strings"
@@ -13,9 +12,8 @@ import (
 )
 
 func main() {
-	commaSeparatedKeywords := flag.String("keywords", "", "")
-	flag.Parse()
-	keywords := strings.Split(*commaSeparatedKeywords, ",")
+	commaSeparatedKeywords := os.Getenv("KEYWORDS")
+	keywords := strings.Split(commaSeparatedKeywords, ",")
 
 	// TODO make redis URL configurable. Use VCAP services if on CF
 	i := indexer.New("localhost:6379", clock{})
