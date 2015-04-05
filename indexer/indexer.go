@@ -10,12 +10,18 @@ import (
 	"github.com/garyburd/redigo/redis"
 )
 
+//go:generate counterfeiter . Clock
+type Clock interface {
+	Now() time.Time
+}
+
 type WordCountRepository struct {
 	connPool  *redis.Pool
 	randomSrc *rand.Rand
+	clock     Clock
 }
 
-func New(redisURL string) *WordCountRepository {
+func New(redisURL string, clock Clock) *WordCountRepository {
 	pool := &redis.Pool{
 		Dial: func() (redis.Conn, error) {
 			return redis.Dial("tcp", redisURL)
@@ -25,11 +31,13 @@ func New(redisURL string) *WordCountRepository {
 	return &WordCountRepository{
 		connPool:  pool,
 		randomSrc: rand.New(rand.NewSource(time.Now().UnixNano())),
+		clock:     clock,
 	}
 }
 
 func (repo *WordCountRepository) IndexWord(s string) error {
-	added, err := redis.Int(repo.connPool.Get().Do("ZADD", s, 0, repo.randomString()))
+	timestamp := fmt.Sprintf("%d", repo.clock.Now().UnixNano()/1000)
+	added, err := redis.Int(repo.connPool.Get().Do("ZADD", s, timestamp, repo.randomString()))
 	if added != 1 {
 		return fmt.Errorf("Expected to add 1 member to set %s, added %d", s, added)
 	}
