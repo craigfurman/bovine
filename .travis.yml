@@ -1,0 +1,10 @@
+---
+language: go
+
+go:
+- 1.4
+
+install:
+- echo 'Install phase handled in scripts/test.sh'
+
+script: ./scripts/test.sh
