@@ -8,3 +8,6 @@ install:
 - echo 'Install phase handled in scripts/test.sh'
 
 script: ./scripts/test.sh
+
+services:
+- redis-server
