@@ -18,6 +18,7 @@ func main() {
 
 	// TODO make redis URL configurable. Use VCAP services if on CF
 	i := indexer.New("localhost:6379", clock{})
+	defer i.Close()
 	api := web.New(i, keywords, clock{})
 	server := negroni.Classic()
 	server.UseHandler(api)

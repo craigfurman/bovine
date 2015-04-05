@@ -36,8 +36,7 @@ func New(redisURL string, clock Clock) *WordCountRepository {
 }
 
 func (repo *WordCountRepository) IndexWord(s string) error {
-	timestamp := fmt.Sprintf("%d", repo.clock.Now().UnixNano()/1000)
-	added, err := redis.Int(repo.connPool.Get().Do("ZADD", s, timestamp, repo.randomString()))
+	added, err := redis.Int(repo.connPool.Get().Do("ZADD", s, timestamp(repo.clock.Now()), repo.randomString()))
 	if added != 1 {
 		return fmt.Errorf("Expected to add 1 member to set %s, added %d", s, added)
 	}
@@ -45,8 +44,13 @@ func (repo *WordCountRepository) IndexWord(s string) error {
 }
 
 func (repo *WordCountRepository) Count(word string, since time.Time) (uint, error) {
-	entries, err := redis.Strings(repo.connPool.Get().Do("ZRANGEBYSCORE", word, fmt.Sprintf("%d", since.UnixNano()/1000), "+inf"))
+	entries, err := redis.Strings(repo.connPool.Get().Do("ZRANGEBYSCORE", word, timestamp(since), "+inf"))
 	return uint(len(entries)), err
+}
+
+func (repo *WordCountRepository) Cleanup(word string, before time.Time) error {
+	_, err := repo.connPool.Get().Do("ZREMRANGEBYSCORE", word, 0, timestamp(before))
+	return err
 }
 
 func (repo *WordCountRepository) Close() error {
@@ -55,4 +59,8 @@ func (repo *WordCountRepository) Close() error {
 
 func (repo *WordCountRepository) randomString() string {
 	return fmt.Sprintf("%x", md5.Sum([]byte(strconv.Itoa(repo.randomSrc.Int()))))
+}
+
+func timestamp(t time.Time) string {
+	return fmt.Sprintf("%d", t.UnixNano()/1000)
 }

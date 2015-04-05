@@ -76,4 +76,25 @@ var _ = Describe("Indexer", func() {
 			Expect(count).To(Equal(uint(1)))
 		})
 	})
+
+	Describe("Cleanup", func() {
+
+		It("deletes entries for keyword before specified time", func() {
+			now := time.Now()
+
+			threeHoursAgo := now.Add(time.Hour * -3)
+			clock.NowReturns(threeHoursAgo)
+			Expect(repo.IndexWord(keyword)).To(Succeed())
+
+			oneHourAgo := now.Add(time.Hour * -1)
+			clock.NowReturns(oneHourAgo)
+			Expect(repo.IndexWord(keyword)).To(Succeed())
+
+			Expect(repo.Cleanup(keyword, now.Add(time.Hour*-2))).To(Succeed())
+
+			count, err := redis.Int(redisConn.Do("ZCARD", keyword))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(count).To(Equal(1))
+		})
+	})
 })
