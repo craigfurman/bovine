@@ -44,6 +44,11 @@ func (repo *WordCountRepository) IndexWord(s string) error {
 	return err
 }
 
+func (repo *WordCountRepository) Count(word string, since time.Time) (uint, error) {
+	entries, err := redis.Strings(repo.connPool.Get().Do("ZRANGEBYSCORE", word, fmt.Sprintf("%d", since.UnixNano()/1000), "+inf"))
+	return uint(len(entries)), err
+}
+
 func (repo *WordCountRepository) Close() error {
 	return repo.connPool.Close()
 }
