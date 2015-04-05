@@ -37,15 +37,24 @@ func New(wordCounter WordCounter, keywords []string, clock Clock) *mux.Router {
 }
 
 func (h *handler) handleWordCount(w http.ResponseWriter, req *http.Request) {
-	w.Header()["Content-Type"] = []string{"application/json"}
-
 	wordCounts := make(map[string]uint)
 	for _, keyword := range h.keywords {
-		count, _ := h.wordCounter.Count("bork", time.Now())
+		count, err := h.wordCounter.Count(keyword, h.clock.Now().AddDate(0, 0, -1))
+		if err != nil {
+			w.WriteHeader(500)
+			w.Write([]byte(err.Error()))
+			return
+		}
 		wordCounts[keyword] = count
 	}
-	wordCountBytes, _ := json.Marshal(wordCounts)
-	_, err := w.Write(wordCountBytes)
+	wordCountBytes, err := json.Marshal(wordCounts)
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(err.Error()))
+		return
+	}
+	w.Header()["Content-Type"] = []string{"application/json"}
+	_, err = w.Write(wordCountBytes)
 	if err != nil {
 		log.Println(err)
 	}
