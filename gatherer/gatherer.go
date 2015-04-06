@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"sync"
 
 	"github.com/mrjones/oauth"
 )
@@ -52,6 +53,7 @@ func (client *TwitterClient) Stream(commaSeparatedKeywords string) {
 	}
 	defer response.Body.Close()
 	streamer := bufio.NewScanner(response.Body)
+	wg := new(sync.WaitGroup)
 	for streamer.Scan() {
 		token := streamer.Text()
 		parsedTweet := make(map[string]interface{})
@@ -59,8 +61,15 @@ func (client *TwitterClient) Stream(commaSeparatedKeywords string) {
 		tweet := parsedTweet["text"].(string)
 		for _, keyword := range keywords {
 			if strings.Contains(strings.ToLower(tweet), keyword) {
-				client.index.IndexWord(keyword)
+				wg.Add(1)
+				go client.indexTweet(keyword, wg)
 			}
 		}
 	}
+	wg.Wait()
+}
+
+func (client *TwitterClient) indexTweet(wordToIndex string, done *sync.WaitGroup) {
+	defer done.Done()
+	client.index.IndexWord(wordToIndex)
 }
