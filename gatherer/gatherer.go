@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 	"sync"
 
@@ -22,6 +23,7 @@ type TwitterClient struct {
 	accessToken          string
 	accessTokenSecret    string
 	twitterStreamBaseURL string
+	logger               *log.Logger
 }
 
 func New(index Indexer, consumerKey, consumerSecret, accessToken, accessTokenSecret, twitterStreamBaseURL string) *TwitterClient {
@@ -32,10 +34,11 @@ func New(index Indexer, consumerKey, consumerSecret, accessToken, accessTokenSec
 		accessToken:          accessToken,
 		accessTokenSecret:    accessTokenSecret,
 		twitterStreamBaseURL: twitterStreamBaseURL,
+		logger:               log.New(os.Stdout, "gatherer: ", log.LstdFlags),
 	}
 }
 
-func (client *TwitterClient) Stream(commaSeparatedKeywords string) {
+func (client *TwitterClient) Stream(commaSeparatedKeywords string, errorChan chan<- error) {
 	keywords := strings.Split(commaSeparatedKeywords, ",")
 	consumer := oauth.NewConsumer(
 		client.consumerKey,
@@ -49,7 +52,7 @@ func (client *TwitterClient) Stream(commaSeparatedKeywords string) {
 		Secret: client.accessTokenSecret,
 	})
 	if err != nil {
-		log.Fatal(err)
+		client.logger.Fatal(err)
 	}
 	defer response.Body.Close()
 	streamer := bufio.NewScanner(response.Body)
@@ -59,17 +62,20 @@ func (client *TwitterClient) Stream(commaSeparatedKeywords string) {
 		parsedTweet := make(map[string]interface{})
 		json.Unmarshal([]byte(token), &parsedTweet)
 		tweet := parsedTweet["text"].(string)
+		client.logger.Println(tweet)
 		for _, keyword := range keywords {
 			if strings.Contains(strings.ToLower(tweet), keyword) {
 				wg.Add(1)
-				go client.indexTweet(keyword, wg)
+				go client.indexTweet(keyword, wg, errorChan)
 			}
 		}
 	}
 	wg.Wait()
 }
 
-func (client *TwitterClient) indexTweet(wordToIndex string, done *sync.WaitGroup) {
+func (client *TwitterClient) indexTweet(wordToIndex string, done *sync.WaitGroup, errorChan chan<- error) {
 	defer done.Done()
-	client.index.IndexWord(wordToIndex)
+	if err := client.index.IndexWord(wordToIndex); err != nil {
+		errorChan <- err
+	}
 }

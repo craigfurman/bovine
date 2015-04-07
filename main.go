@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -22,12 +23,21 @@ func main() {
 	defer i.Close()
 
 	g := gatherer.New(i, os.Getenv("TWITTER_CONSUMER_KEY"), os.Getenv("TWITTER_CONSUMER_SECRET"), os.Getenv("TWITTER_ACCESS_TOKEN"), os.Getenv("TWITTER_ACCESS_TOKEN_SECRET"), "https://stream.twitter.com")
-	go g.Stream(commaSeparatedKeywords)
+	streamErrs := make(chan error, 20)
+	go processErrors(streamErrs)
+	go g.Stream(commaSeparatedKeywords, streamErrs)
 
 	api := web.New(i, keywords, clock{})
 	server := negroni.Classic()
 	server.UseHandler(api)
 	server.Run(fmt.Sprintf(":%s", port()))
+}
+
+func processErrors(ch <-chan error) {
+	logger := log.New(os.Stdout, "error processor: ", log.LstdFlags)
+	for {
+		logger.Println(<-ch)
+	}
 }
 
 func port() string {

@@ -1,11 +1,13 @@
 package gatherer_test
 
 import (
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/craigfurman/bovine/gatherer"
 
@@ -15,17 +17,20 @@ import (
 )
 
 type fakeIndexer struct {
-	argCount map[string]int
+	argCount     map[string]int
+	indexWordErr error
 }
 
 func (i *fakeIndexer) IndexWord(s string) error {
 	i.argCount[s] = i.argCount[s] + 1
-	return nil
+	return i.indexWordErr
 }
 
 var _ = Describe("counting tweets", func() {
 
 	var (
+		g *gatherer.TwitterClient
+
 		consumerKey       = "consumerKey"
 		consumerSecret    = "consumerSecret"
 		accessToken       = "accessToken"
@@ -53,6 +58,7 @@ var _ = Describe("counting tweets", func() {
 		}).
 			Methods("POST")
 		mockTwitter = httptest.NewServer(handler)
+		g = gatherer.New(index, consumerKey, consumerSecret, accessToken, accessTokenSecret, mockTwitter.URL)
 	})
 
 	AfterSuite(func() {
@@ -60,10 +66,27 @@ var _ = Describe("counting tweets", func() {
 	})
 
 	It("prints data from the twitter streaming API", func() {
-		g := gatherer.New(index, consumerKey, consumerSecret, accessToken, accessTokenSecret, mockTwitter.URL)
-		g.Stream("python,ruby")
+		g.Stream("python,ruby", make(chan error))
 		Expect(index.argCount).To(HaveLen(2))
 		Expect(index.argCount["ruby"]).To(Equal(9))
 		Expect(index.argCount["python"]).To(Equal(8))
+	})
+
+	Context("when indexing tweet fails", func() {
+
+		BeforeEach(func() {
+			index.indexWordErr = errors.New("o no!")
+		})
+
+		It("reports the error on supplied channel", func() {
+			ch := make(chan error, 50)
+			g.Stream("python", ch)
+			select {
+			case err := <-ch:
+				Expect(err).To(MatchError("o no!"))
+			case <-time.After(time.Second * 1):
+				Fail("expected to receive error, got nothing")
+			}
+		})
 	})
 })
