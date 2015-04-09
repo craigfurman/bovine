@@ -58,19 +58,28 @@ func (client *TwitterClient) Stream(commaSeparatedKeywords string, errorChan cha
 	streamer := bufio.NewScanner(response.Body)
 	wg := new(sync.WaitGroup)
 	for streamer.Scan() {
-		token := streamer.Text()
-		parsedTweet := make(map[string]interface{})
-		json.Unmarshal([]byte(token), &parsedTweet)
-		tweet := parsedTweet["text"].(string)
-		client.logger.Println(tweet)
-		for _, keyword := range keywords {
-			if strings.Contains(strings.ToLower(tweet), keyword) {
-				wg.Add(1)
-				go client.indexTweet(keyword, wg, errorChan)
-			}
-		}
+		client.processTweet(streamer.Text(), keywords, wg, errorChan)
 	}
 	wg.Wait()
+}
+
+func (client *TwitterClient) processTweet(tweetJson string, keywords []string, wg *sync.WaitGroup, errorChan chan<- error) {
+	parsedTweet := make(map[string]interface{})
+	json.Unmarshal([]byte(tweetJson), &parsedTweet)
+	if tweetTextField, ok := parsedTweet["text"]; ok {
+		tweet := tweetTextField.(string)
+		client.logger.Println(tweet)
+		client.checkAllKeywords(tweet, keywords, wg, errorChan)
+	}
+}
+
+func (client *TwitterClient) checkAllKeywords(tweet string, keywords []string, wg *sync.WaitGroup, errorChan chan<- error) {
+	for _, keyword := range keywords {
+		if strings.Contains(strings.ToLower(tweet), keyword) {
+			wg.Add(1)
+			go client.indexTweet(keyword, wg, errorChan)
+		}
+	}
 }
 
 func (client *TwitterClient) indexTweet(wordToIndex string, done *sync.WaitGroup, errorChan chan<- error) {

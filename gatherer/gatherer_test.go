@@ -38,12 +38,17 @@ var _ = Describe("counting tweets", func() {
 
 		mockTwitter *httptest.Server
 		index       *fakeIndexer
+		response    string
 	)
 
-	BeforeSuite(func() {
+	BeforeEach(func() {
 		index = &fakeIndexer{
 			argCount: make(map[string]int),
 		}
+		response = "sample"
+	})
+
+	JustBeforeEach(func() {
 		handler := mux.NewRouter()
 		handler.HandleFunc("/1.1/statuses/filter.json", func(w http.ResponseWriter, r *http.Request) {
 			defer GinkgoRecover()
@@ -52,7 +57,7 @@ var _ = Describe("counting tweets", func() {
 			Expect(authHeader).To(ContainSubstring(accessToken))
 			cwd, err := os.Getwd()
 			Expect(err).NotTo(HaveOccurred())
-			sample, err := ioutil.ReadFile(filepath.Join(cwd, "assets", "sample"))
+			sample, err := ioutil.ReadFile(filepath.Join(cwd, "assets", response))
 			Expect(err).NotTo(HaveOccurred())
 			w.Write(sample)
 		}).
@@ -61,7 +66,7 @@ var _ = Describe("counting tweets", func() {
 		g = gatherer.New(index, consumerKey, consumerSecret, accessToken, accessTokenSecret, mockTwitter.URL)
 	})
 
-	AfterSuite(func() {
+	AfterEach(func() {
 		mockTwitter.Close()
 	})
 
@@ -70,6 +75,19 @@ var _ = Describe("counting tweets", func() {
 		Expect(index.argCount).To(HaveLen(2))
 		Expect(index.argCount["ruby"]).To(Equal(9))
 		Expect(index.argCount["python"]).To(Equal(8))
+	})
+
+	Context("when a tweet contains no text", func() {
+
+		BeforeEach(func() {
+			response = "sample-emptytweet"
+		})
+
+		It("does not panic", func() {
+			Expect(func() {
+				g.Stream("anything", make(chan error))
+			}).NotTo(Panic())
+		})
 	})
 
 	Context("when indexing tweet fails", func() {
