@@ -1,13 +1,11 @@
 package gatherer_test
 
 import (
-	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/craigfurman/bovine/gatherer"
 
@@ -71,7 +69,7 @@ var _ = Describe("counting tweets", func() {
 	})
 
 	It("prints data from the twitter streaming API", func() {
-		g.Stream("python,ruby", make(chan error))
+		g.Stream("python,ruby")
 		Expect(index.argCount).To(HaveLen(2))
 		Expect(index.argCount["ruby"]).To(Equal(9))
 		Expect(index.argCount["python"]).To(Equal(8))
@@ -85,26 +83,8 @@ var _ = Describe("counting tweets", func() {
 
 		It("does not panic", func() {
 			Expect(func() {
-				g.Stream("anything", make(chan error))
+				g.Stream("anything")
 			}).NotTo(Panic())
-		})
-	})
-
-	Context("when indexing tweet fails", func() {
-
-		BeforeEach(func() {
-			index.indexWordErr = errors.New("o no!")
-		})
-
-		It("reports the error on supplied channel", func() {
-			ch := make(chan error, 50)
-			g.Stream("python", ch)
-			select {
-			case err := <-ch:
-				Expect(err).To(MatchError("o no!"))
-			case <-time.After(time.Second * 1):
-				Fail("expected to receive error, got nothing")
-			}
 		})
 	})
 })
