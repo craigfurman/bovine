@@ -12,11 +12,11 @@
 		},
 		{
 			"ImportPath": "github.com/garyburd/redigo/internal",
-			"Rev": "535138d7bcd717d6531c701ef5933d98b1866257"
+			"Rev": "3e4727f0ef5938d3a846cdb57e560dba4419e854"
 		},
 		{
 			"ImportPath": "github.com/garyburd/redigo/redis",
-			"Rev": "535138d7bcd717d6531c701ef5933d98b1866257"
+			"Rev": "3e4727f0ef5938d3a846cdb57e560dba4419e854"
 		},
 		{
 			"ImportPath": "github.com/gorilla/context",
@@ -24,7 +24,7 @@
 		},
 		{
 			"ImportPath": "github.com/gorilla/mux",
-			"Rev": "8096f47503459bcc74d1f4c487b7e6e42e5746b5"
+			"Rev": "47e8f450ef38c857cdd922ec08862ca9d65a1c6d"
 		},
 		{
 			"ImportPath": "github.com/mrjones/oauth",
@@ -32,13 +32,13 @@
 		},
 		{
 			"ImportPath": "github.com/onsi/ginkgo",
-			"Comment": "v1.1.0-42-gdbb5c6c",
-			"Rev": "dbb5c6caf33238b57facc1d975b1aaca6b90288c"
+			"Comment": "v1.2.0",
+			"Rev": "462326b1628e124b23f42e87a8f2750e3c4e2d24"
 		},
 		{
 			"ImportPath": "github.com/onsi/gomega",
-			"Comment": "v1.0-37-gb14a2ac",
-			"Rev": "b14a2ac7124392baa05fa8f0fc17dd6b492c0970"
+			"Comment": "v1.0-50-gd6c945f",
+			"Rev": "d6c945f9fdbf6cad99e85b0feff591caa268e0db"
 		}
 	]
 }
